@@ -8,7 +8,7 @@ public class BrushlessMotor : MonoBehaviour
     public float propellerDiameter = 0.127f; // meters ( 0.127f = 5inch)
 
     private float rpm;
-    public float thrust;
+    public float MaxThrust;
 
     public float airDensity = 1.225f; // kg/m^3
     public float propellerArea; // m^2
@@ -19,7 +19,7 @@ public class BrushlessMotor : MonoBehaviour
 
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    void Awake()
     {
         _rigidbody = GetComponent<Rigidbody>();
 
@@ -27,17 +27,11 @@ public class BrushlessMotor : MonoBehaviour
         rpm =  KV * voltage;
         // basicly area of a circle
         propellerArea = Mathf.PI * Mathf.Pow(propellerDiameter / 2, 2);
-
-    }
-
-    // Update is called once per frame
-    void FixedUpdate()
-    {
+        
         // linear velocity
         float velocity = rpm * propellerDiameter * Mathf.PI / 60; // м/с
 
-        thrust = C_L * airDensity * propellerArea * Mathf.Pow(velocity, 2) * motorEfficiency;
+        MaxThrust = C_L * airDensity * propellerArea * Mathf.Pow(velocity, 2) * motorEfficiency;
 
-        
     }
 }

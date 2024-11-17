@@ -5,9 +5,9 @@ TagManager:
   serializedVersion: 3
   tags:
   - motorFR
-  - motorBL
-  - motorBR
   - motorFL
+  - motorRR
+  - motorRL
   layers:
   - Default
   - TransparentFX

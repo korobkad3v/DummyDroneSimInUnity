@@ -1,4 +1,4 @@
-using UnityEngine;
+    using UnityEngine;
 
 public class WindForce : MonoBehaviour
 {
@@ -40,7 +40,7 @@ public class WindForce : MonoBehaviour
 
     void Update()
     {
-        Debug.Log($"Friction force: {frictionForceToApply.magnitude}\nWind force: {_windZone.windMain}");
+        //Debug.Log($"Friction force: {frictionForceToApply.magnitude}\nWind force: {_windZone.windMain}");
     }
 
     void OnCollisionEnter(Collision other) 
