@@ -11,6 +11,7 @@ public class Frame : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        Debug.DrawLine(transform.position, transform.position + Vector3.up * 3f, Color.red);
         
     }
 }

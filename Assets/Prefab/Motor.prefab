@@ -130,6 +130,7 @@ MonoBehaviour:
   airDensity: 1.225
   propellerArea: 0
   C_L: 0.1
+  isClockwise: 1
 --- !u!54 &1795206947671075864
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -167,7 +168,7 @@ FixedJoint:
   serializedVersion: 1
   m_ConnectedBody: {fileID: 0}
   m_ConnectedArticulationBody: {fileID: 0}
-  m_BreakForce: Infinity
+  m_BreakForce: 1000
   m_BreakTorque: Infinity
   m_EnableCollision: 0
   m_EnablePreprocessing: 1

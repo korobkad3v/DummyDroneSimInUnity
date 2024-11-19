@@ -126,8 +126,8 @@ public class DroneController : MonoBehaviour
             motorForce = baseThrust + pitch + roll - yaw; //CW
         }
 
-        motorRigidbody.AddForce(motor.transform.up * motorForce);
-        Debug.DrawLine(motor.transform.position, motor.transform.position + motor.transform.up * motorForce * 0.1f, Color.red);
+        motorRigidbody.AddForce(motor.transform.up * motorForce, ForceMode.Force);
+        Debug.DrawLine(motor.transform.position, motor.transform.position + motor.transform.up * motorForce * 0.1f, Color.yellow);
         
         return motorForce;
         
@@ -154,6 +154,54 @@ public class DroneController : MonoBehaviour
         {
             increaseThrottle = input > 0;
             decreaseThrottle = input < 0;
+        }
+    }
+
+    public void OnPitch(InputValue value)
+    {
+        var device = InputSystem.GetDevice<InputDevice>();
+        float input = value.Get<float>();
+
+        if (device is Gamepad)
+        {
+            pitchInput = input;
+        }
+        else if (device is Keyboard)
+        {
+            increasePitch = input > 0;
+            decreasePitch = input < 0;
+        }
+    }
+
+    public void OnYaw(InputValue value)
+    {
+        var device = InputSystem.GetDevice<InputDevice>();
+        float input = value.Get<float>();
+
+        if (device is Gamepad)
+        {
+            yawInput = input;
+        }
+        else if (device is Keyboard)
+        {
+            increaseYaw = input > 0;
+            decreaseYaw = input < 0;
+        }
+    }
+
+    public void OnRoll(InputValue value)
+    {
+        var device = InputSystem.GetDevice<InputDevice>();
+        float input = value.Get<float>();
+
+        if (device is Gamepad)
+        {
+            rollInput = input;
+        }
+        else if (device is Keyboard)
+        {
+            increaseRoll = input > 0;
+            decreaseRoll = input < 0;
         }
     }
 
