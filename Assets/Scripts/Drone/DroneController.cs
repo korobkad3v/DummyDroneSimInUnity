@@ -1,5 +1,7 @@
 using System;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class DroneController : MonoBehaviour
 {
@@ -8,11 +10,18 @@ public class DroneController : MonoBehaviour
     
     public GameObject globalTarget;
 
-    public float throttleCoeff = 0f;
-    // public float pitchCoeff = 0f;
-    // public float rollCoeff = 0f;
-    // public float yawCoeff = 0f;
+    public float throttleInput = 0f;
+    public float pitchInput = 0f;
+    public float yawInput = 0f;
+    public float rollInput = 0f;
+    public float inputStep = 1f; 
+    public float inputSpeed = 1f; 
+    
+    private float throttleMinValue = 0f;
+    private float throttleMaxValue = 1f;
 
+    private float minValue = -1f;
+    private float maxValue = 1f;
     
     public PIDController yawPID;
     public PIDController pitchPID;
@@ -20,6 +29,23 @@ public class DroneController : MonoBehaviour
 
     public Vector3 positionError;
     public Vector3 localPositionError;
+    
+
+    private bool increaseThrottle = false;
+    private bool decreaseThrottle = false;
+
+    private bool increasePitch = false;
+    private bool decreasePitch = false;
+
+    private bool increaseYaw = false;
+    private bool decreaseYaw = false;
+
+    private bool increaseRoll = false;
+    private bool decreaseRoll = false;
+
+    public BrushlessMotor[] GetBrushlessMotors() {
+        return _motors;
+    }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -27,13 +53,36 @@ public class DroneController : MonoBehaviour
         _motors = GetComponentsInChildren<BrushlessMotor>();
     }
 
+    private void Update()
+    {
+        var device = InputSystem.GetDevice<InputDevice>();
+        
+        if (device is Gamepad)
+        {
+            throttleInput = Mathf.Clamp(throttleInput, throttleMinValue, throttleMaxValue);
+        }
+        else if (device is Keyboard)
+        {
+          
+            if (increasePitch) pitchInput = Mathf.Clamp(pitchInput + inputStep * inputSpeed * Time.deltaTime, minValue, maxValue);
+            if (decreasePitch) pitchInput = Mathf.Clamp(pitchInput - inputStep * inputSpeed * Time.deltaTime, minValue, maxValue);
+
+            if (increaseYaw) yawInput = Mathf.Clamp(yawInput + inputStep * inputSpeed * Time.deltaTime, minValue, maxValue);
+            if (decreaseYaw) yawInput = Mathf.Clamp(yawInput - inputStep * inputSpeed * Time.deltaTime, minValue, maxValue);
+
+            if (increaseRoll) rollInput = Mathf.Clamp(rollInput + inputStep * inputSpeed * Time.deltaTime, minValue, maxValue);
+            if (decreaseRoll) rollInput = Mathf.Clamp(rollInput - inputStep * inputSpeed * Time.deltaTime, minValue, maxValue);
+
+            if (increaseThrottle) throttleInput = Mathf.Clamp(throttleInput + inputStep * inputSpeed * Time.deltaTime, throttleMinValue, throttleMaxValue);
+            if (decreaseThrottle) throttleInput = Mathf.Clamp(throttleInput - inputStep * inputSpeed * Time.deltaTime, throttleMinValue, throttleMaxValue);
+        }
+
+        Debug.Log($"Device: {device.name}, Throttle: {throttleInput}");
+    }
+
     void FixedUpdate()
     {   
-        throttleCoeff = Mathf.Clamp(throttleCoeff, 0f, 1f);
-
-        // pitchCoeff = Mathf.Clamp(pitchCoeff, -1f, 1f);
-        // rollCoeff = Mathf.Clamp(rollCoeff, -1f, 1f);
-        // yawCoeff = Mathf.Clamp(yawCoeff, -1f, 1f);
+        throttleInput = Mathf.Clamp(throttleInput, 0f, 1f);
 
         Vector3 currentPosition = transform.position;
         Vector3 currentAngles = transform.rotation.eulerAngles;
@@ -41,57 +90,72 @@ public class DroneController : MonoBehaviour
         float currentPitch = currentAngles.x;
         float currentRoll = currentAngles.z;
 
-        Debug.Log($"Current Yaw: {currentYaw}, Current Pitch: {currentPitch}, Current Roll: {currentRoll}");
-
         float pitchError = globalTarget.transform.eulerAngles.x - currentAngles.x;
         float rollError = globalTarget.transform.eulerAngles.z - currentAngles.z;
         float yawError = globalTarget.transform.eulerAngles.y - currentAngles.y;
 
-        Debug.Log($"Pitch Error: {pitchError}, Roll Error: {rollError}, Yaw Error: {yawError}");
-
         positionError = globalTarget.transform.position - currentPosition;
         localPositionError = transform.InverseTransformDirection(positionError);
+        float[] motorForces = new float[_motors.Length];
 
-        Debug.Log($"Position Error (Global): {positionError}");
-        Debug.Log($"Position Error (Local): {localPositionError}");
-
-        float pitchCorrection = pitchPID.Update(pitchError, Time.fixedDeltaTime);
-        float rollCorrection = rollPID.Update(rollError, Time.fixedDeltaTime);
-        float yawCorrection = yawPID.Update(yawError, Time.fixedDeltaTime);
-
-        Debug.Log($"Pitch Correction: {pitchCorrection}, Roll Correction: {rollCorrection}, Yaw Correction: {yawCorrection}");
-
-        // Vector3 combinedError = new Vector3(localPositionError.x, yawError, localPositionError.z);
-
-        // Debug.DrawLine(transform.position, transform.position + combinedError, Color.blue);
-        foreach (var motor in _motors)
-        {
-            ApplyMotorForces(motor, throttleCoeff, pitchCorrection, rollCorrection, yawCorrection);
+        for (int i = 0; i < _motors.Length; i++){
+            motorForces[i] = ApplyMotorForces(_motors[i], throttleInput, pitchInput, rollInput, yawInput);
         }
+
+        ApplyTorque(motorForces[0], motorForces[1], motorForces[2], motorForces[3]);
+        Debug.Log($"FR Force: {motorForces[0]}, FL Force: {motorForces[1]}, RR Force: {motorForces[2]}, RL Force: {motorForces[3]}");
+    }
+
+    public float ApplyMotorForces(BrushlessMotor motor, float throttle, float pitch, float roll, float yaw) 
+    {
+        float baseThrust = motor.MaxThrust * throttle;
+        
+        Rigidbody motorRigidbody = motor.GetComponent<Rigidbody>();
+        
+        float motorForce = 0;
+        if (motor.gameObject.CompareTag("motorFR")) {
+            motorForce = baseThrust - pitch - roll - yaw; //CCW
+        }
+        else if (motor.gameObject.CompareTag("motorFL")) {
+            motorForce = baseThrust - pitch + roll + yaw; //CW
+        }
+        else if (motor.gameObject.CompareTag("motorRR")) {
+            motorForce = baseThrust + pitch - roll + yaw; //CCW
+        }
+        else if (motor.gameObject.CompareTag("motorRL")) {
+            motorForce = baseThrust + pitch + roll - yaw; //CW
+        }
+
+        motorRigidbody.AddForce(motor.transform.up * motorForce);
+        Debug.DrawLine(motor.transform.position, motor.transform.position + motor.transform.up * motorForce * 0.1f, Color.red);
+        
+        return motorForce;
         
     }
 
-    public BrushlessMotor[] GetBrushlessMotors() {
-        return _motors;
+    public void ApplyTorque(float frForce, float flForce, float rrForce, float rlForce) {
+        float torque = (frForce + rlForce) - (flForce + rrForce);
+        Rigidbody frameRigidbody = GetComponentInChildren<Frame>().GetComponent<Rigidbody>();
+        frameRigidbody.AddTorque(transform.up * torque * -1f, ForceMode.VelocityChange);
     }
 
-    public void ApplyMotorForces(BrushlessMotor motor, float throttle, float pitchAdjustment, float rollAdjustment, float yawAdjustment) 
+
+
+    public void OnThrottle(InputValue value)
     {
-        float baseThrust = motor.MaxThrust * throttle;
-        Rigidbody motorRigidbody = motor.GetComponent<Rigidbody>();
+        var device = InputSystem.GetDevice<InputDevice>();
+        float input = value.Get<float>();
 
-        if (motor.gameObject.CompareTag("motorFR")) {
-            motorRigidbody.AddForce(motor.transform.up *  (baseThrust + pitchAdjustment + rollAdjustment + yawAdjustment));
+        if (device is Gamepad)
+        {
+            throttleInput = value.Get<float>();
         }
-        else if (motor.gameObject.CompareTag("motorFL")) {
-            motorRigidbody.AddForce(motor.transform.up *  (baseThrust + pitchAdjustment - rollAdjustment - yawAdjustment));
-        }
-        else if (motor.gameObject.CompareTag("motorRR")) {
-            motorRigidbody.AddForce(motor.transform.up *  (baseThrust - pitchAdjustment + rollAdjustment - yawAdjustment));
-        }
-        else if (motor.gameObject.CompareTag("motorRL")) {
-            motorRigidbody.AddForce(motor.transform.up *  (baseThrust - pitchAdjustment - rollAdjustment + yawAdjustment));
+        else if (device is Keyboard)
+        {
+            increaseThrottle = input > 0;
+            decreaseThrottle = input < 0;
         }
     }
+
 }
 

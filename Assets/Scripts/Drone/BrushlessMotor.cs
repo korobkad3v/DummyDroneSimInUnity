@@ -14,6 +14,8 @@ public class BrushlessMotor : MonoBehaviour
     public float propellerArea; // m^2
     public float C_L = 0.1f; // Lift coefficient approx.
 
+    public bool isClockwise = true;
+
 
     private Rigidbody _rigidbody;
 
@@ -28,10 +30,10 @@ public class BrushlessMotor : MonoBehaviour
         // basicly area of a circle
         propellerArea = Mathf.PI * Mathf.Pow(propellerDiameter / 2, 2);
         
-        // linear velocity
         float velocity = rpm * propellerDiameter * Mathf.PI / 60; // м/с
-
-        MaxThrust = C_L * airDensity * propellerArea * Mathf.Pow(velocity, 2) * motorEfficiency;
+        
+        float coeff = isClockwise ? 1f : -1f;
+        MaxThrust = coeff * C_L * airDensity * propellerArea * Mathf.Pow(velocity, 2) * motorEfficiency ;
 
     }
 }
