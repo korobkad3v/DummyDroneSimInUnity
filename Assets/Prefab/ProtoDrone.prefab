@@ -31,8 +31,8 @@ Transform:
   m_Children:
   - {fileID: 5186904923605261442}
   - {fileID: 4800239530363099970}
-  - {fileID: 5115966916389417905}
   - {fileID: 8216272062639235087}
+  - {fileID: 5115966916389417905}
   m_Father: {fileID: 1487338652860400521}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7370432497464168092
@@ -83,8 +83,27 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   voltage: 11.7
-  globalTarget: {x: 0, y: 0, z: 0}
-  throttleCoeff: 0
+  globalTarget: {fileID: 0}
+  throttleInput: 0
+  pitchInput: 0
+  yawInput: 0
+  rollInput: 0
+  inputStep: 1
+  inputSpeed: 1
+  yawPID:
+    _kp: 0
+    _ki: 0
+    _kd: 0
+  pitchPID:
+    _kp: 0
+    _ki: 0
+    _kd: 0
+  rollPID:
+    _kp: 0
+    _ki: 0
+    _kd: 0
+  positionError: {x: 0, y: 0, z: 0}
+  localPositionError: {x: 0, y: 0, z: 0}
 --- !u!1 &7573445834716554669
 GameObject:
   m_ObjectHideFlags: 0
@@ -129,6 +148,7 @@ GameObject:
   - component: {fileID: 8339503107663406110}
   - component: {fileID: 7548951869246326255}
   - component: {fileID: 976006684687603347}
+  - component: {fileID: 2154738724213477717}
   m_Layer: 0
   m_Name: Frame
   m_TagString: Untagged
@@ -252,6 +272,18 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &2154738724213477717
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8439645356362387910}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67576a916acd6ed4ebed9331b1c70ae5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &1738848889589652072
 PrefabInstance:
   m_ObjectHideFlags: 0

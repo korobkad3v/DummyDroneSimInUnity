@@ -70,7 +70,7 @@ public class DroneAgent : Agent
         
         foreach (var motor in droneController.GetBrushlessMotors())
         {   
-            droneController.ApplyMotorForces(motor, throttle, pitchCorrection, rollCorrection, yawCorrection);
+            //droneController.ApplyMotorForces(motor, throttle, pitchCorrection, rollCorrection, yawCorrection);
         }
         float distanceToTarget = Vector3.Distance(transform.position, droneController.globalTarget.transform.position);
 

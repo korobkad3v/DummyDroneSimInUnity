@@ -100,6 +100,7 @@ public class DroneController : MonoBehaviour
 
         for (int i = 0; i < _motors.Length; i++){
             motorForces[i] = ApplyMotorForces(_motors[i], throttleInput, pitchInput, rollInput, yawInput);
+
         }
 
         ApplyTorque(motorForces[0], motorForces[1], motorForces[2], motorForces[3]);
@@ -154,6 +155,109 @@ public class DroneController : MonoBehaviour
         {
             increaseThrottle = input > 0;
             decreaseThrottle = input < 0;
+
+        }
+
+        ApplyTorque(motorForces[0], motorForces[1], motorForces[2], motorForces[3]);
+        Debug.Log($"FR Force: {motorForces[0]}, FL Force: {motorForces[1]}, RR Force: {motorForces[2]}, RL Force: {motorForces[3]}");
+    }
+
+    public float ApplyMotorForces(BrushlessMotor motor, float throttle, float pitch, float roll, float yaw) 
+    {
+        float baseThrust = motor.MaxThrust * throttle;
+        
+        Rigidbody motorRigidbody = motor.GetComponent<Rigidbody>();
+        
+        float motorForce = 0;
+        if (motor.gameObject.CompareTag("motorFR")) {
+            motorForce = baseThrust - pitch - roll - yaw; //CCW
+        }
+        else if (motor.gameObject.CompareTag("motorFL")) {
+            motorForce = baseThrust - pitch + roll + yaw; //CW
+        }
+        else if (motor.gameObject.CompareTag("motorRR")) {
+            motorForce = baseThrust + pitch - roll + yaw; //CCW
+        }
+        else if (motor.gameObject.CompareTag("motorRL")) {
+            motorForce = baseThrust + pitch + roll - yaw; //CW
+        }
+
+        motorRigidbody.AddForce(motor.transform.up * motorForce, ForceMode.Force);
+        Debug.DrawLine(motor.transform.position, motor.transform.position + motor.transform.up * motorForce * 0.1f, Color.yellow);
+        
+        return motorForce;
+        
+    }
+
+    public void ApplyTorque(float frForce, float flForce, float rrForce, float rlForce) {
+        float torque = (frForce + rlForce) - (flForce + rrForce);
+        Rigidbody frameRigidbody = GetComponentInChildren<Frame>().GetComponent<Rigidbody>();
+        frameRigidbody.AddTorque(transform.up * torque * -1f, ForceMode.VelocityChange);
+    }
+
+
+
+    public void OnThrottle(InputValue value)
+    {
+        var device = InputSystem.GetDevice<InputDevice>();
+        float input = value.Get<float>();
+
+        if (device is Gamepad)
+        {
+            throttleInput = value.Get<float>();
+        }
+        else if (device is Keyboard)
+        {
+            increaseThrottle = input > 0;
+            decreaseThrottle = input < 0;
+        }
+    }
+
+    public void OnPitch(InputValue value)
+    {
+        var device = InputSystem.GetDevice<InputDevice>();
+        float input = value.Get<float>();
+
+        if (device is Gamepad)
+        {
+            pitchInput = input;
+        }
+        else if (device is Keyboard)
+        {
+            increasePitch = input > 0;
+            decreasePitch = input < 0;
+        }
+    }
+
+    public void OnYaw(InputValue value)
+    {
+        var device = InputSystem.GetDevice<InputDevice>();
+        float input = value.Get<float>();
+
+        if (device is Gamepad)
+        {
+            yawInput = input;
+        }
+        else if (device is Keyboard)
+        {
+            increaseYaw = input > 0;
+            decreaseYaw = input < 0;
+        }
+    }
+
+    public void OnRoll(InputValue value)
+    {
+        var device = InputSystem.GetDevice<InputDevice>();
+        float input = value.Get<float>();
+
+        if (device is Gamepad)
+        {
+            rollInput = input;
+        }
+        else if (device is Keyboard)
+        {
+            increaseRoll = input > 0;
+            decreaseRoll = input < 0;
         }
     }
 
