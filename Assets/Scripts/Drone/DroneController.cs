@@ -7,8 +7,9 @@ public class DroneController : MonoBehaviour
 {
     public float voltage = 11.7f; // V
     private BrushlessMotor[] _motors;
+    private Frame _frame;
     
-    public GameObject globalTarget;
+    public Vector3 targetAngles = Vector3.zero;
 
     public float throttleInput = 0f;
     public float pitchInput = 0f;
@@ -25,11 +26,7 @@ public class DroneController : MonoBehaviour
     
     public PIDController yawPID;
     public PIDController pitchPID;
-    public PIDController rollPID;
-
-    public Vector3 positionError;
-    public Vector3 localPositionError;
-    
+    public PIDController rollPID;  
 
     private bool increaseThrottle = false;
     private bool decreaseThrottle = false;
@@ -43,6 +40,10 @@ public class DroneController : MonoBehaviour
     private bool increaseRoll = false;
     private bool decreaseRoll = false;
 
+    private bool isControlling = false;
+
+    private float inputDecaySpeed = 5f;
+
     public BrushlessMotor[] GetBrushlessMotors() {
         return _motors;
     }
@@ -51,60 +52,81 @@ public class DroneController : MonoBehaviour
     void Start()
     {
         _motors = GetComponentsInChildren<BrushlessMotor>();
+        _frame = GetComponentInChildren<Frame>();
     }
 
     private void Update()
     {
         var device = InputSystem.GetDevice<InputDevice>();
         
-        if (device is Gamepad)
-        {
-            throttleInput = Mathf.Clamp(throttleInput, throttleMinValue, throttleMaxValue);
-        }
-        else if (device is Keyboard)
-        {
+        // if (device is Gamepad)
+        // {
+        //     throttleInput = Mathf.Clamp(throttleInput, throttleMinValue, throttleMaxValue);
+        //     pitchInput = Mathf.Clamp(pitchInput, minValue, maxValue);
+        //     yawInput = Mathf.Clamp(yawInput, minValue, maxValue);
+        //     rollInput = Mathf.Clamp(rollInput, minValue, maxValue);
+
+        // }
+        // else if (device is Keyboard)
+        // {
           
-            if (increasePitch) pitchInput = Mathf.Clamp(pitchInput + inputStep * inputSpeed * Time.deltaTime, minValue, maxValue);
-            if (decreasePitch) pitchInput = Mathf.Clamp(pitchInput - inputStep * inputSpeed * Time.deltaTime, minValue, maxValue);
+        //     if (increasePitch) pitchInput = Mathf.Clamp(pitchInput + inputStep * inputSpeed * Time.deltaTime, minValue, maxValue);
+        //     if (decreasePitch) pitchInput = Mathf.Clamp(pitchInput - inputStep * inputSpeed * Time.deltaTime, minValue, maxValue);
 
-            if (increaseYaw) yawInput = Mathf.Clamp(yawInput + inputStep * inputSpeed * Time.deltaTime, minValue, maxValue);
-            if (decreaseYaw) yawInput = Mathf.Clamp(yawInput - inputStep * inputSpeed * Time.deltaTime, minValue, maxValue);
+        //     if (increaseYaw) yawInput = Mathf.Clamp(yawInput + inputStep * inputSpeed * Time.deltaTime, minValue, maxValue);
+        //     if (decreaseYaw) yawInput = Mathf.Clamp(yawInput - inputStep * inputSpeed * Time.deltaTime, minValue, maxValue);
 
-            if (increaseRoll) rollInput = Mathf.Clamp(rollInput + inputStep * inputSpeed * Time.deltaTime, minValue, maxValue);
-            if (decreaseRoll) rollInput = Mathf.Clamp(rollInput - inputStep * inputSpeed * Time.deltaTime, minValue, maxValue);
+        //     if (increaseRoll) rollInput = Mathf.Clamp(rollInput + inputStep * inputSpeed * Time.deltaTime, minValue, maxValue);
+        //     if (decreaseRoll) rollInput = Mathf.Clamp(rollInput - inputStep * inputSpeed * Time.deltaTime, minValue, maxValue);
 
-            if (increaseThrottle) throttleInput = Mathf.Clamp(throttleInput + inputStep * inputSpeed * Time.deltaTime, throttleMinValue, throttleMaxValue);
-            if (decreaseThrottle) throttleInput = Mathf.Clamp(throttleInput - inputStep * inputSpeed * Time.deltaTime, throttleMinValue, throttleMaxValue);
-        }
+        //     if (increaseThrottle) throttleInput = Mathf.Clamp(throttleInput + inputStep * inputSpeed * Time.deltaTime, throttleMinValue, throttleMaxValue);
+        //     if (decreaseThrottle) throttleInput = Mathf.Clamp(throttleInput - inputStep * inputSpeed * Time.deltaTime, throttleMinValue, throttleMaxValue);
+        // }
 
-        Debug.Log($"Device: {device.name}, Throttle: {throttleInput}");
+        
     }
 
     void FixedUpdate()
     {   
-        throttleInput = Mathf.Clamp(throttleInput, 0f, 1f);
+        Vector3 currentPosition =  _frame.transform.position;
+        Vector3 currentAngles = _frame.transform.eulerAngles;
+        Vector3 angularVelocity = _frame.GetComponent<Rigidbody>().angularVelocity;
 
-        Vector3 currentPosition = transform.position;
-        Vector3 currentAngles = transform.rotation.eulerAngles;
         float currentYaw = currentAngles.y;
         float currentPitch = currentAngles.x;
         float currentRoll = currentAngles.z;
 
-        float pitchError = globalTarget.transform.eulerAngles.x - currentAngles.x;
-        float rollError = globalTarget.transform.eulerAngles.z - currentAngles.z;
-        float yawError = globalTarget.transform.eulerAngles.y - currentAngles.y;
+        float errorYaw = Mathf.DeltaAngle(currentYaw, targetAngles.y);
+        float errorPitch = Mathf.DeltaAngle(currentPitch, targetAngles.x);
+        float errorRoll = Mathf.DeltaAngle(currentRoll, targetAngles.z) * -1f;
 
-        positionError = globalTarget.transform.position - currentPosition;
-        localPositionError = transform.InverseTransformDirection(positionError);
+        float correctionYaw = yawPID.Update(errorYaw, Time.deltaTime) / 180;
+        float correctionPitch = pitchPID.Update(errorPitch, Time.deltaTime) / 180;
+        float correctionRoll = rollPID.Update(errorRoll, Time.deltaTime) / 180;
+        
+        Debug.Log($"Error angles1: Yaw: {errorYaw}, Pitch: {errorPitch}, Roll: {errorRoll}");
+        Debug.Log($"Correction angles: Yaw: {correctionYaw}, Pitch: {correctionPitch}, Roll: {correctionRoll}");
+
+        
+        pitchInput = correctionPitch;
+        rollInput = correctionRoll;
+        yawInput = correctionYaw;
+        
+        
+
+        
         float[] motorForces = new float[_motors.Length];
+
+        
 
         for (int i = 0; i < _motors.Length; i++){
             motorForces[i] = ApplyMotorForces(_motors[i], throttleInput, pitchInput, rollInput, yawInput);
         }
 
         ApplyTorque(motorForces[0], motorForces[1], motorForces[2], motorForces[3]);
-        Debug.Log($"FR Force: {motorForces[0]}, FL Force: {motorForces[1]}, RR Force: {motorForces[2]}, RL Force: {motorForces[3]}");
+        
     }
+    
 
     public float ApplyMotorForces(BrushlessMotor motor, float throttle, float pitch, float roll, float yaw) 
     {
@@ -145,7 +167,6 @@ public class DroneController : MonoBehaviour
     {
         var device = InputSystem.GetDevice<InputDevice>();
         float input = value.Get<float>();
-
         if (device is Gamepad)
         {
             throttleInput = value.Get<float>();
@@ -154,8 +175,47 @@ public class DroneController : MonoBehaviour
         {
             increaseThrottle = input > 0;
             decreaseThrottle = input < 0;
+            if (input == 0)
+            {
+                increasePitch = false;
+                decreasePitch = false;
+            }
         }
     }
 
+    public void OnPitch(InputValue value)
+    {
+        var device = InputSystem.GetDevice<InputDevice>();
+        float input = value.Get<float>();
+        
+        targetAngles.x = 45f * input;
+
+        
+    }
+
+    public void OnYaw(InputValue value)
+    {
+        var device = InputSystem.GetDevice<InputDevice>();
+        float input = value.Get<float>();
+        
+        targetAngles.y = float.MaxValue* input;
+    }
+
+    public void OnRoll(InputValue value)
+    {
+        var device = InputSystem.GetDevice<InputDevice>();
+        float input = value.Get<float>();
+        
+        targetAngles.z = -45f * input;
+    }
+    
+
+
+    float NormalizeAngle(float angle)
+    {
+        angle = (angle + 360) % 360;
+        if (angle > 180) angle -= 360;
+        return angle;
+    }
 }
 
