@@ -121,6 +121,17 @@
                     "isPartOfComposite": true
                 },
                 {
+                    "name": "",
+                    "id": "0895c43f-ad05-45c4-b1b4-4eb9ed41b3ba",
+                    "path": "<Gamepad>/leftStick/y",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Gamepad",
+                    "action": "Pitch",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
                     "name": "1D Axis",
                     "id": "994a3101-a02a-4177-852d-b987320c54e4",
                     "path": "1DAxis(whichSideWins=1)",
@@ -154,6 +165,17 @@
                     "isPartOfComposite": true
                 },
                 {
+                    "name": "",
+                    "id": "3b935a02-1743-42d2-9493-b851f94a7aea",
+                    "path": "<Gamepad>/leftStick/x",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Gamepad",
+                    "action": "Yaw",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
                     "name": "1D Axis",
                     "id": "6fad01ce-5c51-4813-99b5-55b6f73192d7",
                     "path": "1DAxis(whichSideWins=1)",
@@ -185,6 +207,17 @@
                     "action": "Roll",
                     "isComposite": false,
                     "isPartOfComposite": true
+                },
+                {
+                    "name": "",
+                    "id": "7a7acd73-1b2a-4f1c-b283-4b6d9e61c866",
+                    "path": "<Gamepad>/rightStick/x",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Gamepad",
+                    "action": "Roll",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 }
             ]
         },
