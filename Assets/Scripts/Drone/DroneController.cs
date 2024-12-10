@@ -2,6 +2,7 @@ using System;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using TMPro;
 
 public class DroneController : MonoBehaviour
 {
@@ -11,6 +12,8 @@ public class DroneController : MonoBehaviour
     private Frame _frame;
     
     public Vector3 targetAngles;
+
+    public TMP_Text LastInputText;
 
     public float throttleInput = 0f;
     public float pitchInput = 0f;
@@ -150,9 +153,10 @@ public class DroneController : MonoBehaviour
         var device = InputSystem.GetDevice<InputDevice>();
         float input = value.Get<float>();
 
-        if (device is Gamepad)
+        if (device is Gamepad gamepad)
         {
             throttleInput = value.Get<float>();
+           
         }
         else if (device is Keyboard)
         {
@@ -160,9 +164,10 @@ public class DroneController : MonoBehaviour
             decreaseThrottle = input < 0;
 
         }
-
+        LastInputText.text = $"Throttle: {input}, Device: {device.name}";
         ApplyTorque(motorForces[0], motorForces[1], motorForces[2], motorForces[3]);
         
+            
     }
 
     public void OnPitch(InputValue value)
