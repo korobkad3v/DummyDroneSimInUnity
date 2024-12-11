@@ -3,6 +3,9 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using TMPro;
+using UnityEngine.SceneManagement;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 public class DroneController : MonoBehaviour
 {
@@ -14,6 +17,12 @@ public class DroneController : MonoBehaviour
     public Vector3 targetAngles;
 
     public TMP_Text LastInputText;
+    public TMP_Text SignalText;
+
+    public Transform spawnPoint;
+    public SignalZone signal;
+    public Volume crtEffect;
+
 
     public float throttleInput = 0f;
     public float pitchInput = 0f;
@@ -27,10 +36,14 @@ public class DroneController : MonoBehaviour
 
     private float minValue = -1f;
     private float maxValue = 1f;
+
+    public bool isSignalDetected = true;
     
     public PIDController yawPID;
     public PIDController pitchPID;
     public PIDController rollPID;  
+
+    
 
     private bool increaseThrottle = false;
     private bool decreaseThrottle = false;
@@ -50,9 +63,20 @@ public class DroneController : MonoBehaviour
 
     private float[] motorForces;
     private float yawInputValue = 0f;
+    
+    
+
+    public void Reset() {
+        gameObject.transform.position = spawnPoint.position;
+        
+    }
 
     public BrushlessMotor[] GetBrushlessMotors() {
         return _motors;
+    }
+
+    void Awake() {
+        Reset();
     }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -68,6 +92,21 @@ public class DroneController : MonoBehaviour
     {
         var device = InputSystem.GetDevice<InputDevice>();
         targetAngles.y += yawInputValue * Time.deltaTime * 30f;
+
+        if (crtEffect.profile.TryGet<FilmGrain>(out var grain))
+        {
+            if (!isSignalDetected) {
+                grain.intensity.value += Time.deltaTime * 2f;
+                if (grain.intensity.value >= 1f) {
+                    SignalText.gameObject.SetActive(true);
+
+                }
+            }
+            else if (isSignalDetected && grain.intensity.value >0.1f) {
+                grain.intensity.value -= Time.deltaTime * 2f;
+            }
+        }
+       
     }
 
     void FixedUpdate()
@@ -153,19 +192,22 @@ public class DroneController : MonoBehaviour
         var device = InputSystem.GetDevice<InputDevice>();
         float input = value.Get<float>();
 
-        if (device is Gamepad gamepad)
-        {
-            throttleInput = value.Get<float>();
-           
-        }
-        else if (device is Keyboard)
-        {
-            increaseThrottle = input > 0;
-            decreaseThrottle = input < 0;
+        if (isSignalDetected) {
+            if (device is Gamepad gamepad)
+            {
+                throttleInput = value.Get<float>();
+            
+            }
+            else if (device is Keyboard)
+            {
+                increaseThrottle = input > 0;
+                decreaseThrottle = input < 0;
 
+            }
+            LastInputText.text = $"Throttle: {input}, Device: {device.name}";
+            ApplyTorque(motorForces[0], motorForces[1], motorForces[2], motorForces[3]);
         }
-        LastInputText.text = $"Throttle: {input}, Device: {device.name}";
-        ApplyTorque(motorForces[0], motorForces[1], motorForces[2], motorForces[3]);
+        
         
             
     }
@@ -175,24 +217,43 @@ public class DroneController : MonoBehaviour
         var device = InputSystem.GetDevice<InputDevice>();
         float input = value.Get<float>();
         
-        targetAngles.x = 45f * input;
-
+        if (isSignalDetected) {
+            targetAngles.x = 45f * input;
+            LastInputText.text = $"Pitch: {input}, Device: {device.name}";
+        }
+        
         
     }
 
     public void OnYaw(InputValue value)
     {
         var device = InputSystem.GetDevice<InputDevice>();
-        yawInputValue = value.Get<float>();
+        if (isSignalDetected) {
+            yawInputValue = value.Get<float>();
+            LastInputText.text = $"yaw: {yawInputValue}, Device: {device.name}";
+        }
+        
+
+        
     }
 
     public void OnRoll(InputValue value)
     {
         var device = InputSystem.GetDevice<InputDevice>();
         float input = value.Get<float>();
+
+        if (isSignalDetected){
+            targetAngles.z = -45f * input;
+            LastInputText.text = $"Roll: {input}, Device: {device.name}";
+        }
         
-        targetAngles.z = -45f * input;
+        
     }
     
+    public void OnRespawn() {
+        Debug.Log($"Resetting position from {gameObject.transform.position} to {spawnPoint.position}");
+        
+        UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
+    }
 }
 
